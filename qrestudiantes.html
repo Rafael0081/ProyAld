@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador QR - AsistApp</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div class="contenedor no-print">
+    <div class="cabecera-qr">
+        <div>
+            <h1>Códigos QR de Estudiantes</h1>
+            <p>Selecciona un curso para generar, descargar o imprimir todas las credenciales.</p>
+        </div>
+        <div class="acciones-qr">
+            <button class="btn-nuevo" onclick="abrirModalEstudiante()">
+                <i class="fas fa-user-plus"></i> Nuevo Estudiante
+            </button>
+            <button class="btn-imprimir" onclick="imprimirCredencialesCurso()">
+                <i class="fas fa-print"></i> Imprimir Credenciales del Curso
+            </button>
+        </div>
+    </div>
+
+    <div class="datos">
+        <div class="campo">
+            <label for="select-curso">Curso</label>
+            <select id="select-curso">
+                <option value="1">Cargando...</option>
+            </select>
+        </div>
+    </div>
+
+    <h2>Lista de estudiantes</h2>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Nombre</th>
+                    <th>Token QR</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-estudiantes">
+                <tr>
+                    <td colspan="4">Cargando estudiantes...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<a href="menu.html" class="volver no-print" title="Volver al menú">⬅️</a>
+
+<!-- Contenedor exclusivo para impresión masiva de carnets QR -->
+<div id="area-impresion" class="solo-impresion">
+    <h2 id="titulo-impresion" style="text-align: center; margin-bottom: 15px;">Credenciales de Asistencia</h2>
+    <div id="grid-credenciales" class="grid-carnets"></div>
+</div>
+
+<!-- Modal para ver y descargar un QR individual -->
+<div id="modal-qr" class="modal no-print">
+    <div class="modal-content">
+        <span class="cerrar" onclick="cerrarModal()">&times;</span>
+        <h2 id="qr-nombre">Nombre del Estudiante</h2>
+        <p style="margin-bottom: 10px;">Código asignado: <span id="qr-texto" style="font-weight: bold; color: #2563eb;"></span></p>
+
+        <div id="contenedor-qr"></div>
+
+        <button class="btn-descargar" onclick="descargarQR()">
+            <i class="fas fa-download"></i> Descargar PNG
+        </button>
+    </div>
+</div>
+
+<!-- Modal para Registrar Nuevo Estudiante -->
+<div id="modal-estudiante" class="modal no-print">
+    <div class="modal-content" style="text-align: left;">
+        <span class="cerrar" onclick="cerrarModalEstudiante()">&times;</span>
+        <h2 style="text-align: center;">Registrar Estudiante</h2>
+        <p style="margin-bottom: 20px; text-align: center;">Se agregará al curso actual y creará su QR.</p>
+
+        <form id="form-estudiante">
+            <div class="grupo-input">
+                <label for="est-numero">Número de lista</label>
+                <input type="number" id="est-numero" min="1" required>
+            </div>
+
+            <div class="grupo-input">
+                <label for="est-nombre">Nombre completo</label>
+                <input type="text" id="est-nombre" placeholder=" " required>
+            </div>
+
+            <div class="grupo-input">
+                <label for="est-token">Código QR (Token único)</label>
+                <div class="fila-token">
+                    <input type="text" id="est-token" required>
+                    <button type="button" class="btn-regenerar" onclick="generarTokenAutomatico()" title="Generar otro código">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-descargar" id="btn-submit-est">
+                <i class="fas fa-save"></i> Guardar y Generar QR
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+
+    body {
+        min-height: 100vh;
+        padding: 60px 15px 30px;
+        display: flex; justify-content: center; align-items: center;
+        background: linear-gradient(-45deg, #0b2fa8, #1565c0, #2196f3, #4fc3f7);
+        background-size: 400% 400%; animation: fondo 10s ease infinite;
+    }
+    @keyframes fondo { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+    .contenedor {
+        width: 100%; max-width: 960px; background: #fff;
+        border-radius: 15px; padding: 35px; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    .cabecera-qr {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        flex-wrap: wrap; gap: 15px; margin-bottom: 20px;
+    }
+
+    .acciones-qr { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    h1 { font-size: 32px; margin-bottom: 5px; }
+    p { color: #666; }
+
+    .btn-nuevo, .btn-imprimir {
+        color: white; border: none; padding: 10px 16px; border-radius: 8px;
+        font-size: 14px; font-weight: bold; cursor: pointer;
+        display: flex; align-items: center; gap: 8px; transition: 0.25s;
+    }
+    .btn-nuevo { background: #15803d; }
+    .btn-nuevo:hover { background: #166534; transform: translateY(-2px); }
+    .btn-imprimir { background: #0f172a; }
+    .btn-imprimir:hover { background: #1e293b; transform: translateY(-2px); }
+
+    .datos { display: flex; margin-bottom: 25px; }
+    .campo { display: flex; flex-direction: column; }
+    label { margin-bottom: 8px; font-weight: bold; font-size: 14px; }
+    select { width: 250px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: center; padding: 15px; border-bottom: 2px solid #ddd; }
+    td { padding: 14px; text-align: center; border-bottom: 1px solid #eee; }
+    td:nth-child(2) { text-align: left; font-weight: 500; }
+    .badge-token {
+        background: #f1f5f9; color: #334155; padding: 4px 10px;
+        border-radius: 6px; font-family: monospace; font-size: 14px;
+    }
+
+    .btn-qr, .btn-descargar {
+        background: #2563eb; color: white; border: none;
+        padding: 10px 20px; border-radius: 8px; font-size: 15px;
+        cursor: pointer; transition: 0.3s;
+    }
+    .btn-qr:hover, .btn-descargar:hover { background: #1d4ed8; transform: translateY(-2px); }
+    .btn-descargar { margin-top: 20px; width: 100%; font-weight: bold; }
+
+    .volver { position: fixed; top: 15px; left: 20px; font-size: 35px; color: white; text-decoration: none; transition: 0.3s; z-index: 100; }
+    .volver:hover { color: #90caf9; transform: scale(1.15); }
+
+    .modal {
+        display: none; position: fixed; z-index: 2000; left: 0; top: 0;
+        width: 100%; height: 100%; background-color: rgba(0,0,0,0.6);
+        justify-content: center; align-items: center;
+    }
+    .modal-content {
+        background-color: #fff; padding: 35px; border-radius: 20px;
+        text-align: center; width: 90%; max-width: 400px; position: relative;
+    }
+    .cerrar {
+        position: absolute; top: 12px; right: 20px;
+        color: #aaa; font-size: 32px; font-weight: bold; cursor: pointer;
+    }
+    .cerrar:hover { color: #f50909; }
+    #contenedor-qr {
+        display: flex; justify-content: center; margin-top: 15px;
+        padding: 20px; background: white; border-radius: 10px; border: 2px dashed #ccc;
+    }
+    .grupo-input { display: flex; flex-direction: column; margin-bottom: 15px; }
+    .grupo-input input {
+        padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; outline: none;
+    }
+    .fila-token { display: flex; gap: 8px; }
+    .fila-token input { flex: 1; }
+    .btn-regenerar {
+        background: #e5e7eb; border: none; padding: 0 14px; border-radius: 8px; cursor: pointer;
+    }
+
+    /* Estilos para la vista de impresión de credenciales */
+    .solo-impresion { display: none; }
+
+    @media print {
+        body { background: white !important; padding: 0 !important; display: block !important; }
+        .no-print { display: none !important; }
+        .solo-impresion { display: block !important; width: 100%; }
+        .grid-carnets {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        .carnet-qr {
+            border: 2px dashed #334155;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+        .carnet-qr h4 { font-size: 12px; color: #1e3a8a; margin-bottom: 4px; text-transform: uppercase; }
+        .carnet-qr .curso-tag { font-size: 11px; color: #475569; margin-bottom: 8px; font-weight: bold; }
+        .carnet-qr .qr-box { display: flex; justify-content: center; margin: 6px 0; }
+        .carnet-qr .nombre-est { font-size: 12px; font-weight: bold; margin-top: 6px; min-height: 28px; }
+        .carnet-qr .token-est { font-size: 10px; font-family: monospace; color: #64748b; }
+    }
+</style>
+
+<script type="module">
+    import { supabase, verificarSesion } from './conexion.js';
+
+    verificarSesion();
+
+    const selectCurso = document.getElementById('select-curso');
+    const tablaEstudiantes = document.getElementById('tabla-estudiantes');
+    const modalQR = document.getElementById('modal-qr');
+    const modalEstudiante = document.getElementById('modal-estudiante');
+    const formEstudiante = document.getElementById('form-estudiante');
+
+    let nombreActualQR = 'Estudiante';
+    let listaEstudiantes = [];
+
+    async function cargarCursos() {
+        const { data, error } = await supabase
+            .from('cursos')
+            .select('*')
+            .order('id_curso', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+            selectCurso.innerHTML = data
+                .map(c => `<option value="${c.id_curso}">${c.nombre_curso}</option>`)
+                .join('');
+        }
+    }
+
+    async function cargarEstudiantes() {
+        const idCurso = selectCurso.value;
+        tablaEstudiantes.innerHTML = '<tr><td colspan="4">Cargando estudiantes...</td></tr>';
+
+        const { data, error } = await supabase
+            .from('estudiantes')
+            .select('*')
+            .eq('id_curso', idCurso)
+            .order('numero_lista', { ascending: true });
+
+        if (error) {
+            tablaEstudiantes.innerHTML = '<tr><td colspan="4" style="color:red;">Error al cargar datos.</td></tr>';
+            return;
+        }
+
+        listaEstudiantes = data || [];
+        tablaEstudiantes.innerHTML = '';
+
+        if (listaEstudiantes.length === 0) {
+            tablaEstudiantes.innerHTML = '<tr><td colspan="4">No hay estudiantes en este curso.</td></tr>';
+            return;
+        }
+
+        listaEstudiantes.forEach(estudiante => {
+            const numero = estudiante.numero_lista.toString().padStart(2, '0');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${numero}</td>
+                <td>${estudiante.nombre_completo}</td>
+                <td><span class="badge-token">${estudiante.qr_token}</span></td>
+                <td>
+                    <button class="btn-qr">
+                        <i class="fas fa-qrcode"></i> Ver QR
+                    </button>
+                </td>
+            `;
+            tr.querySelector('.btn-qr').addEventListener('click', () => {
+                abrirQR(estudiante.nombre_completo, estudiante.qr_token);
+            });
+            tablaEstudiantes.appendChild(tr);
+        });
+    }
+
+    window.abrirQR = function(nombre, token) {
+        nombreActualQR = nombre;
+        document.getElementById('qr-nombre').innerText = nombre;
+        document.getElementById('qr-texto').innerText = token;
+
+        const contenedorQR = document.getElementById('contenedor-qr');
+        contenedorQR.innerHTML = "";
+
+        new QRCode(contenedorQR, {
+            text: token,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        modalQR.style.display = 'flex';
+    };
+
+    window.descargarQR = function() {
+        const contenedorQR = document.getElementById('contenedor-qr');
+        const canvas = contenedorQR.querySelector('canvas');
+        const img = contenedorQR.querySelector('img');
+
+        const enlace = document.createElement('a');
+        enlace.download = `QR_${nombreActualQR.replace(/\s+/g, '_')}.png`;
+
+        if (canvas) {
+            enlace.href = canvas.toDataURL('image/png');
+            enlace.click();
+        } else if (img && img.src) {
+            enlace.href = img.src;
+            enlace.click();
+        }
+    };
+
+    // Genera todos los carnets del curso y abre la ventana de impresión
+    window.imprimirCredencialesCurso = function() {
+        if (listaEstudiantes.length === 0) {
+            alert("No hay estudiantes en este curso para imprimir.");
+            return;
+        }
+
+        const nombreCurso = selectCurso.options[selectCurso.selectedIndex].text;
+        document.getElementById('titulo-impresion').innerText = `U.E. Puerto de Rosario — Credenciales QR (${nombreCurso})`;
+
+        const grid = document.getElementById('grid-credenciales');
+        grid.innerHTML = '';
+
+        listaEstudiantes.forEach(est => {
+            const num = est.numero_lista.toString().padStart(2, '0');
+            const card = document.createElement('div');
+            card.className = 'carnet-qr';
+            card.innerHTML = `
+                <h4>U.E. Puerto de Rosario</h4>
+                <div class="curso-tag">${nombreCurso} | Lista #${num}</div>
+                <div class="qr-box" id="print-qr-${est.id_estudiante}"></div>
+                <div class="nombre-est">${est.nombre_completo}</div>
+                <div class="token-est">${est.qr_token}</div>
+            `;
+            grid.appendChild(card);
+
+            new QRCode(card.querySelector('.qr-box'), {
+                text: est.qr_token,
+                width: 125,
+                height: 125,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        });
+
+        setTimeout(() => window.print(), 350);
+    };
+
+    window.cerrarModal = function() {
+        modalQR.style.display = 'none';
+    };
+
+    window.generarTokenAutomatico = function() {
+        const idCurso = selectCurso.value;
+        const num = document.getElementById('est-numero').value || '1';
+        const sufijo = Math.random().toString(36).substring(2, 6).toUpperCase();
+        document.getElementById('est-token').value = `EST-C${idCurso}-L${num.toString().padStart(2, '0')}-${sufijo}`;
+    };
+
+    window.abrirModalEstudiante = function() {
+        const maxNumero = listaEstudiantes.reduce((max, est) => Math.max(max, est.numero_lista), 0);
+        document.getElementById('est-numero').value = maxNumero + 1;
+        document.getElementById('est-nombre').value = '';
+        window.generarTokenAutomatico();
+        modalEstudiante.style.display = 'flex';
+    };
+
+    window.cerrarModalEstudiante = function() {
+        modalEstudiante.style.display = 'none';
+    };
+
+    formEstudiante.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = document.getElementById('est-nombre').value.trim().toUpperCase();
+        const token = document.getElementById('est-token').value.trim();
+
+        const nuevoEstudiante = {
+            id_curso: parseInt(selectCurso.value, 10),
+            numero_lista: parseInt(document.getElementById('est-numero').value, 10),
+            nombre_completo: nombre,
+            qr_token: token
+        };
+
+        const { error } = await supabase.from('estudiantes').insert([nuevoEstudiante]);
+
+        if (error) {
+            alert("Error al guardar: verifica que el token QR no esté repetido.");
+            return;
+        }
+
+        cerrarModalEstudiante();
+        await cargarEstudiantes();
+        abrirQR(nombre, token);
+    });
+
+    selectCurso.addEventListener('change', cargarEstudiantes);
+
+    await cargarCursos();
+    await cargarEstudiantes();
+</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #0f172a, #1e3a8a, #2563eb);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+.background {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+.circle {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    animation: float 8s infinite ease-in-out;
+}
+
+.c1 { width: 300px; height: 300px; background: #38bdf8; top: -80px; left: -80px; }
+.c2 { width: 250px; height: 250px; background: #9333ea; right: -60px; bottom: 40px; }
+.c3 { width: 180px; height: 180px; background: #14b8a6; bottom: -50px; left: 40%; }
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-25px); }
+}
+
+.container {
+    width: 90%;
+    max-width: 1100px;
+    display: flex;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border-radius: 25px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.left {
+    flex: 1;
+    color: white;
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.left h1 { font-size: 50px; margin-bottom: 20px; }
+.left p { font-size: 18px; line-height: 1.5; margin-bottom: 25px; }
+.left ul { list-style: none; }
+.left li { margin: 10px 0; font-size: 18px; }
+.left i { color: #22c55e; margin-right: 10px; }
+
+.right {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+.card {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.card h2 { text-align: center; color: #1e3a8a; font-size: 32px; }
+.card p { text-align: center; color: #666; margin-bottom: 25px; }
+
+.inputBox {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.inputBox i.icono-izq {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #2563eb;
+    font-size: 18px;
+}
+
+.inputBox input {
+    width: 100%;
+    padding: 15px 45px 15px 45px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: #f3f4f6;
+    outline: none;
+    font-size: 15px;
+    color: #1f2937;
+    transition: 0.3s;
+}
+
+.inputBox input:focus {
+    background: #fff;
+    border-color: #2563eb;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #6b7280;
+    font-size: 18px;
+}
+
+.options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.options a { text-decoration: none; color: #2563eb; }
+
+button {
+    width: 100%;
+    border: none;
+    padding: 15px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+.login { background: #2563eb; color: white; margin-bottom: 10px; }
+.login:hover { background: #1d4ed8; transform: translateY(-2px); }
+
+.separator {
+    text-align: center;
+    margin: 15px 0;
+    color: #999;
+    position: relative;
+}
+
+.separator::before,
+.separator::after {
+    content: "";
+    position: absolute;
+    width: 40%;
+    height: 1px;
+    background: #ddd;
+    top: 50%;
+}
+
+.separator::before { left: 0; }
+.separator::after { right: 0; }
+
+.register {
+    background: white;
+    color: #2563eb;
+    border: 2px solid #2563eb;
+}
+
+.register:hover {
+    background: #2563eb;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    body { overflow-y: auto; }
+    .container { flex-direction: column; width: 95%; margin: 20px auto; }
+    .left, .right { width: 100%; padding: 25px; text-align: center; }
+    .left h1 { font-size: 34px; }
+    .card { padding: 25px; }
+    .options { flex-direction: column; gap: 10px; }
+}

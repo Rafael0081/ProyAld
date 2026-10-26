@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú Principal - AsistApp</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <button id="menu-btn" aria-label="Abrir menú">☰</button>
+
+    <div id="barra">
+        <div class="perfil-usuario">
+            <i class="fas fa-user-circle"></i>
+            <p id="usuario-correo">Cargando...</p>
+            <span id="usuario-rol" class="badge-rol">Docente</span>
+        </div>
+        <a href="panelcentral.html"><i class="fas fa-book"></i> Asistencia y Faltas</a>
+        <a href="qrestudiantes.html"><i class="fas fa-qrcode"></i> Generar QR</a>
+        <a href="escaner.html"><i class="fas fa-camera"></i> Escanear QR</a>
+        <a id="btn-cerrar-sesion" style="cursor: pointer;"><i class="fas fa-right-from-bracket"></i> Cerrar sesión</a>
+    </div>
+
+    <div class="contenedor-centro">
+        <h1>AsistApp</h1>
+        <p>Registro de Asistencia Digital — U.E. Puerto de Rosario</p>
+
+        <div class="accesos-rapidos">
+            <a href="panelcentral.html" class="tarjeta-acceso">
+                <i class="fas fa-clipboard-check"></i>
+                <h3>Panel de Asistencia</h3>
+                <span>Gestionar presentes, atrasos y faltas</span>
+            </a>
+            <a href="escaner.html" class="tarjeta-acceso">
+                <i class="fas fa-camera"></i>
+                <h3>Escáner QR</h3>
+                <span>Registrar asistencia con cámara</span>
+            </a>
+            <a href="qrestudiantes.html" class="tarjeta-acceso">
+                <i class="fas fa-qrcode"></i>
+                <h3>Credenciales QR</h3>
+                <span>Ver y descargar códigos por curso</span>
+            </a>
+        </div>
+    </div>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a, #2563eb, #38bdf8);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+#menu-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    font-size: 30px;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+.contenedor-centro {
+    text-align: center;
+    max-width: 950px;
+    width: 100%;
+}
+
+.contenedor-centro h1 { font-size: 3.8rem; margin-bottom: 10px; }
+.contenedor-centro p { font-size: 1.3rem; color: rgba(255, 255, 255, 0.85); margin-bottom: 40px; }
+
+.accesos-rapidos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+}
+
+.tarjeta-acceso {
+    background: rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(10px);
+    padding: 30px 20px;
+    border-radius: 18px;
+    color: white;
+    text-decoration: none;
+    transition: 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tarjeta-acceso:hover {
+    transform: translateY(-8px);
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.tarjeta-acceso i { font-size: 45px; margin-bottom: 15px; display: block; }
+.tarjeta-acceso h3 { font-size: 22px; margin-bottom: 8px; }
+.tarjeta-acceso span { font-size: 14px; color: rgba(255, 255, 255, 0.85); }
+
+#barra {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    width: 280px;
+    height: 100%;
+    background: linear-gradient(#0b1d3a, #0f4c81);
+    transition: 0.35s;
+    padding-top: 75px;
+    z-index: 1000;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+}
+
+.perfil-usuario {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    margin-bottom: 10px;
+}
+
+.perfil-usuario i { font-size: 48px; margin-bottom: 8px; color: #38bdf8; }
+.perfil-usuario p { font-size: 14px; word-break: break-all; margin-bottom: 6px; }
+.badge-rol {
+    background: #2563eb;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#barra a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 18px 25px;
+    font-size: 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: 0.3s;
+}
+
+#barra a i { width: 30px; text-align: center; margin-right: 10px; }
+#barra a:hover { background: rgba(255, 255, 255, 0.15); padding-left: 35px; }
+</style>
+
+<script type="module">
+    import { verificarSesion, cerrarSesion } from './conexion.js';
+
+    const usuario = verificarSesion();
+    if (usuario) {
+        document.getElementById('usuario-correo').innerText = usuario.correo;
+        document.getElementById('usuario-rol').innerText = usuario.rol || 'Docente';
+    }
+
+    const barra = document.getElementById('barra');
+    document.getElementById('menu-btn').addEventListener('click', () => {
+        barra.style.left = barra.style.left === '0px' ? '-280px' : '0px';
+    });
+
+    document.getElementById('btn-cerrar-sesion').addEventListener('click', cerrarSesion);
+</script>
+</body>
+</html>

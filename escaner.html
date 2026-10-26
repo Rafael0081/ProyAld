@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner QR - AsistApp</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+
+<div class="scanner">
+    <h1>Escáner de Asistencia</h1>
+
+    <!-- Selector de modo de registro -->
+    <div class="modo-contenedor">
+        <span>Registrar lecturas como:</span>
+        <div class="botones-modo">
+            <button id="btn-modo-p" class="btn-modo activo-p" onclick="cambiarModo('P')">
+                <i class="fas fa-check-circle"></i> Presente (P)
+            </button>
+            <button id="btn-modo-a" class="btn-modo" onclick="cambiarModo('A')">
+                <i class="fas fa-clock"></i> Atraso (A)
+            </button>
+        </div>
+    </div>
+
+    <div class="cuadro">
+        <div id="reader"></div>
+    </div>
+
+    <div id="resultado">
+        Esperando código QR...
+    </div>
+
+    <!-- Historial de últimos escaneados en la sesión actual -->
+    <div class="historial-box">
+        <h3><i class="fas fa-history"></i> Últimos registros</h3>
+        <ul id="lista-historial">
+            <li class="vacio">Aún no se escanearon códigos en esta sesión.</li>
+        </ul>
+    </div>
+</div>
+
+<a href="menu.html" class="volver" title="Volver al menú">⬅️</a>
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+
+    body {
+        background: linear-gradient(135deg, #0f172a, #1e3a8a, #2563eb);
+        display: flex; justify-content: center; align-items: center;
+        min-height: 100vh; color: white; padding: 50px 15px 30px;
+    }
+
+    .scanner { text-align: center; width: 100%; max-width: 520px; }
+    h1 { margin-bottom: 15px; font-size: 28px; }
+
+    .modo-contenedor {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 18px;
+        backdrop-filter: blur(8px);
+    }
+    .modo-contenedor span { font-size: 14px; display: block; margin-bottom: 8px; color: #e2e8f0; }
+    .botones-modo { display: flex; gap: 10px; justify-content: center; }
+
+    .btn-modo {
+        flex: 1; padding: 10px; border: 2px solid rgba(255,255,255,0.25);
+        border-radius: 8px; background: transparent; color: white;
+        font-weight: bold; cursor: pointer; transition: 0.25s; font-size: 14px;
+    }
+    .btn-modo.activo-p { background: #16a34a; border-color: #22c55e; }
+    .btn-modo.activo-a { background: #d97706; border-color: #fbbf24; }
+
+    .cuadro {
+        width: 310px; height: 310px; border: 4px solid white;
+        border-radius: 12px; overflow: hidden; background: black;
+        margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
+
+    #reader { width: 100%; height: 100%; }
+
+    #resultado {
+        margin-top: 18px; color: #00ff95; font-size: 18px;
+        word-break: break-word; font-weight: bold; background: rgba(0,0,0,0.4);
+        padding: 14px; border-radius: 10px; min-height: 62px;
+        display: flex; align-items: center; justify-content: center;
+    }
+
+    .historial-box {
+        margin-top: 18px;
+        background: rgba(15, 23, 42, 0.65);
+        border-radius: 12px;
+        padding: 15px;
+        text-align: left;
+    }
+    .historial-box h3 { font-size: 15px; margin-bottom: 10px; color: #93c5fd; }
+    #lista-historial { list-style: none; max-height: 150px; overflow-y: auto; }
+    #lista-historial li {
+        padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.1);
+        font-size: 13px; display: flex; justify-content: space-between; align-items: center;
+    }
+    #lista-historial li.vacio { color: #94a3b8; justify-content: center; border: none; }
+    .tag-hora { font-family: monospace; color: #cbd5e1; font-size: 12px; }
+
+    .volver {
+        position: fixed; top: 15px; left: 20px; font-size: 35px;
+        color: white; text-decoration: none; font-weight: bold; transition: 0.3s; z-index: 100;
+    }
+    .volver:hover { color: #90caf9; transform: scale(1.15); }
+</style>
+
+<script type="module">
+    import { supabase, verificarSesion, obtenerFechaLocal } from './conexion.js';
+
+    verificarSesion();
+
+    const divResultado = document.getElementById('resultado');
+    const listaHistorial = document.getElementById('lista-historial');
+    let escaneandoActivo = true;
+    let estadoSeleccionado = 'P';
+
+    // Generador de sonido Beep mediante Web Audio API (no requiere archivos externos)
+    function reproducirBeep(exito = true) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.type = exito ? 'sine' : 'sawtooth';
+            osc.frequency.setValueAtTime(exito ? 880 : 240, ctx.currentTime);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+
+            osc.start();
+            osc.stop(ctx.currentTime + (exito ? 0.15 : 0.35));
+        } catch (e) {
+            console.warn("Audio no disponible:", e);
+        }
+    }
+
+    window.cambiarModo = function(nuevoModo) {
+        estadoSeleccionado = nuevoModo;
+        const btnP = document.getElementById('btn-modo-p');
+        const btnA = document.getElementById('btn-modo-a');
+
+        btnP.className = nuevoModo === 'P' ? 'btn-modo activo-p' : 'btn-modo';
+        btnA.className = nuevoModo === 'A' ? 'btn-modo activo-a' : 'btn-modo';
+    };
+
+    function agregarAlHistorial(nombre, estado) {
+        const itemVacio = listaHistorial.querySelector('.vacio');
+        if (itemVacio) itemVacio.remove();
+
+        const hora = new Date().toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const li = document.createElement('li');
+        const etiqueta = estado === 'P' ? '🟢 Presente' : '🟠 Atraso';
+        li.innerHTML = `<span><strong>${nombre}</strong> (${etiqueta})</span> <span class="tag-hora">${hora}</span>`;
+        listaHistorial.prepend(li);
+    }
+
+    async function onScanSuccess(decodedText) {
+        if (!escaneandoActivo) return;
+        escaneandoActivo = false;
+
+        divResultado.style.color = "#ffeb3b";
+        divResultado.innerText = `Procesando: ${decodedText}...`;
+
+        try {
+            const { data: estudiante, error: errorEst } = await supabase
+                .from('estudiantes')
+                .select('*')
+                .eq('qr_token', decodedText.trim())
+                .maybeSingle();
+
+            if (errorEst || !estudiante) {
+                reproducirBeep(false);
+                divResultado.style.color = "#ff5252";
+                divResultado.innerText = "❌ Estudiante no encontrado o código inválido.";
+            } else {
+                const fechaHoy = obtenerFechaLocal();
+
+                const { error: errorGuardado } = await supabase
+                    .from('asistencia')
+                    .upsert({
+                        id_estudiante: estudiante.id_estudiante,
+                        fecha: fechaHoy,
+                        estado: estadoSeleccionado
+                    }, { onConflict: 'id_estudiante,fecha' });
+
+                if (errorGuardado) {
+                    reproducirBeep(false);
+                    divResultado.style.color = "#ff5252";
+                    divResultado.innerText = "⚠️ Error al registrar en la base de datos.";
+                } else {
+                    reproducirBeep(true);
+                    const textoEstado = estadoSeleccionado === 'P' ? 'Presente' : 'Atraso';
+                    divResultado.style.color = estadoSeleccionado === 'P' ? "#00ff95" : "#fbbf24";
+                    divResultado.innerText = `✅ ¡Registrado como ${textoEstado}!\n${estudiante.nombre_completo}`;
+                    agregarAlHistorial(estudiante.nombre_completo, estadoSeleccionado);
+                }
+            }
+        } catch (err) {
+            reproducirBeep(false);
+            console.error(err);
+            divResultado.style.color = "#ff5252";
+            divResultado.innerText = "❌ Ocurrió un error inesperado.";
+        }
+
+        setTimeout(() => {
+            escaneandoActivo = true;
+            divResultado.style.color = "#00ff95";
+            divResultado.innerText = "Esperando código QR...";
+        }, 2500);
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { fps: 10, qrbox: 250 }, false
+    );
+    html5QrcodeScanner.render(onScanSuccess);
+</script>
+</body>
+</html>
